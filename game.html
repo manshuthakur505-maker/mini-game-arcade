@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fruit Slice Arcade</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#101827;color:white;
+ font-family:Arial;text-align:center;
+}
+h1{color:#ffcc45;margin:18px}
+.stats{
+ display:flex;justify-content:center;
+ gap:25px;font-size:18px;margin:15px;
+}
+#game{
+ width:92%;max-width:500px;height:450px;
+ margin:15px auto;background:#20334b;
+ border:2px solid #506783;border-radius:18px;
+ position:relative;overflow:hidden;
+ touch-action:none;
+}
+.fruit{
+ position:absolute;font-size:43px;
+ user-select:none;pointer-events:none;
+}
+#message{
+ position:absolute;top:40%;width:100%;
+ font-size:22px;line-height:1.5;
+}
+.buttons{display:flex;justify-content:center;
+ gap:10px;flex-wrap:wrap}
+button{
+ padding:12px 18px;border:0;border-radius:10px;
+ background:#ffcc45;font-weight:bold;font-size:15px;
+}
+</style>
+</head>
+<body>
+
+<h1>🍉 Fruit Slice Arcade</h1>
+
+<div class="stats">
+ <div>Score: <span id="score">0</span></div>
+ <div>Time: <span id="time">30</span></div>
+ <div>Combo: <span id="combo">0</span></div>
+</div>
+
+<div id="game">
+ <div id="message">Ready to Slice?<br>Press Start!</div>
+</div>
+
+<div class="buttons">
+ <button onclick="startGame()">Start / Restart</button>
+ <button onclick="pauseGame()">Pause / Resume</button>
+</div>
+
+<script>
+const game=document.getElementById("game");
+const message=document.getElementById("message");
+
+let score=0,time=30,combo=0;
+let running=false,paused=false;
+let timer,spawner,comboTimer;
+
+const fruits=["🍎","🍉","🍊","🍇","🍓","🍍"];
+
+function update(){
+ document.getElementById("score").textContent=score;
+ document.getElementById("time").textContent=time;
+ document.getElementById("combo").textContent=combo;
+}
+
+function startGame(){
+ clearInterval(timer);
+ clearInterval(spawner);
+ clearTimeout(comboTimer);
+
+ game.querySelectorAll(".fruit").forEach(f=>f.remove());
+
+ score=0;time=30;combo=0;
+ running=true;paused=false;
+ message.style.display="none";
+ update();
+
+ spawner=setInterval(createFruit,650);
+
+ timer=setInterval(()=>{
+  if(!running||paused)return;
+  time--;
+  update();
+  if(time<=0)endGame();
+ },1000);
+}
+
+function createFruit(){
+ if(!running||paused)return;
+
+ const fruit=document.createElement("div");
+ fruit.className="fruit";
+ fruit.textContent=fruits[Math.floor(Math.random()*fruits.length)];
+
+ fruit.style.left=Math.random()*(game.clientWidth-55)+"px";
+ fruit.style.top=Math.random()*(game.clientHeight-65)+"px";
+
+ game.appendChild(fruit);
+ setTimeout(()=>fruit.remove(),1800);
+}
+
+let slicing=false;
+
+game.addEventListener("pointerdown",e=>{
+ if(!running||paused)return;
+ slicing=true;
+ slice(e);
+});
+
+game.addEventListener("pointermove",e=>{
+ if(slicing&&running&&!paused)slice(e);
+});
+
+window.addEventListener("pointerup",()=>slicing=false);
+window.addEventListener("pointercancel",()=>slicing=false);
+
+function slice(e){
+ const rect=game.getBoundingClientRect();
+ const x=e.clientX-rect.left;
+ const y=e.clientY-rect.top;
+
+ game.querySelectorAll(".fruit").forEach(f=>{
+  const fx=f.offsetLeft+f.offsetWidth/2;
+  const fy=f.offsetTop+f.offsetHeight/2;
+
+  if(Math.hypot(x-fx,y-fy)<35){
+   f.remove();
+   combo++;
+   score+=combo>=3?20:10;
+   update();
+
+   clearTimeout(comboTimer);
+   comboTimer=setTimeout(()=>{
+    combo=0;update();
+   },1000);
+  }
+ });
+}
+
+function pauseGame(){
+ if(!running)return;
+
+ paused=!paused;
+ message.style.display=paused?"block":"none";
+ message.textContent=paused?"PAUSED":"";
+
+}
+
+function endGame(){
+ running=false;
+ paused=false;
+ clearInterval(timer);
+ clearInterval(spawner);
+ game.querySelectorAll(".fruit").forEach(f=>f.remove());
+ message.innerHTML="GAME OVER!<br>Final Score: "+score;
+ message.style.display="block";
+}
+</script>
+</body>
+</html>
